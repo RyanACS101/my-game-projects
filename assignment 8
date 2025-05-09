@@ -1,0 +1,526 @@
+/*
+    Name: Ryan A. Saunders, 5008442915, 1002 & 1005 & 10110, ASSIGNMENT_8
+    Description: this program creates a functional game-like simulation of the game Old School Runescape by reading and processing a map file,
+        managing player actions, and implementing inventory and banking mechanics using structs and 2D arrays.
+    Input: player actions- move, deposit, withdraw, and drop
+    Output: move, game mecanics after using player actions 
+*/
+
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+
+using namespace std;
+
+// global constants
+const int MAX_INVENTORY = 24, MAX_BANK = 5, MAX_STACK = 2,
+          MAP_X_SIZE = 30, MAP_Y_SIZE = 15;
+
+// data type for map items
+struct Entity
+{
+    double chance = 1.0;
+    string type = "";
+};
+
+// data type for player
+struct Player
+{
+    int inventorySize = 0, position[2] = {14, 7};
+    Entity inventory[MAX_INVENTORY];
+};
+
+// data type for player
+struct BankEntity
+{
+    int count = 0;
+    Entity item;
+};
+
+// prototypes
+void readMap(Entity[MAP_Y_SIZE][MAP_X_SIZE]);
+void generateInventory(Player &);
+void displayMap(Entity[MAP_Y_SIZE][MAP_X_SIZE], Player);
+void displayInventory(Player);
+void displayBank(BankEntity[MAX_BANK], int);
+double rng();
+string getCommand();
+// ADD YOUR PROTOTYPES HERE
+string move(Player &, Entity[MAP_Y_SIZE][MAP_X_SIZE]);
+string deposit(Player &, BankEntity [MAX_BANK],
+    Entity [MAP_Y_SIZE][MAP_X_SIZE], int &);
+string withdraw(Player &, BankEntity [MAX_BANK],
+    Entity [MAP_Y_SIZE][MAP_X_SIZE], int &);
+string drop(Player &);
+
+int main()
+{
+    // variables
+    int bankSize = 0;
+    string command = "";
+    Player player;
+    generateInventory(player);
+    Entity map[MAP_Y_SIZE][MAP_X_SIZE];
+    BankEntity bank[MAX_BANK];
+    srand(0);
+    // get the map
+    readMap(map);
+    while (true)
+    {
+        // show map/inventory
+        displayMap(map, player);
+        displayInventory(player);
+        displayBank(bank, bankSize);
+
+        // display error from previous command if needed
+        if (command != "")
+            cout << command << endl;
+
+        // get command
+        command = getCommand();
+
+        // perform command
+        if (command == "move")
+            // ADD YOUR FUNCTION FOR MOVING HERE
+            command = move(player, map);
+        else if (command == "deposit")
+            // ADD YOUR FUNCTION FOR DEPOSITING HERE
+            command = deposit(player, bank, map, bankSize);
+        else if (command == "withdraw")
+            // ADD YOUR FUNCTION FOR WITHDRAWING HERE
+            command = withdraw(player, bank, map, bankSize);
+        else if (command == "drop")
+            // ADD YOUR FUNCTION FOR DROPPING HERE
+            command = drop(player);
+        else if (command == "exit")
+            break;
+    }
+    return 0;
+}
+
+// ----------FILL IN BODY----------
+// reads items in map.csv into the map
+void readMap(Entity map[MAP_Y_SIZE][MAP_X_SIZE])
+{
+    // variables
+    int x = 0, y = 0, comma = 0;
+    string record;
+    ifstream mapFile;
+    string row = "";
+    mapFile.open("map.csv");
+    // YOUR CODE TO READ MAP FILE
+
+       //skip header
+       getline(mapFile, row);
+
+       // read map
+   while(getline(mapFile, row)){
+       // get x
+       comma = row.find(',');
+       x = stoi(row);
+       row = row.substr(comma + 1, row.length());
+       
+       // get y
+       comma = row.find(',');
+       y = stoi(row);
+       row = row.substr(comma + 1, row.length());
+       
+       // get record 
+       record = row;
+   
+       // store record into map
+       map[y][x].type = record;
+
+      
+   }
+   mapFile.close();
+}
+
+// ----------PROVIDED----------
+// generates example inventory
+void generateInventory(Player &player)
+{
+    for (int i = 0; i < MAX_INVENTORY; i++)
+    {
+        if (rng() > 0.5)
+        {
+            player.inventory[i].type = "wood";
+        }
+        else
+        {
+            player.inventory[i].type = "rock";
+        }
+        player.inventorySize++;
+    }
+}
+
+// displays passed map with player on map as 'p'
+void displayMap(Entity map[MAP_Y_SIZE][MAP_X_SIZE], Player player)
+{
+    // top line
+    cout << left << "\n*  ";
+    for (int x = 0; x < MAP_X_SIZE; x++)
+        cout << setw(3) << x;
+    cout << " *\n";
+    // map
+    for (int y = 0; y < MAP_Y_SIZE; y++)
+    {
+        // output row number
+        cout << left << setw(3) << y;
+        // output all items in the row
+        for (int x = 0; x < MAP_X_SIZE; x++)
+        {
+            cout << setw(3);
+            // output 'p' for player
+            if (x == player.position[0] && y == player.position[1])
+                cout << 'p';
+            // output first character of type if entity at space
+            else if (map[y][x].type != "")
+                cout << char(tolower(map[y][x].type[0]));
+            // output blank if nothing at space
+            else
+                cout << "";
+        }
+        // end of line
+        cout << right << setw(2) << y << endl;
+    }
+    // bottom line
+    cout << left << "*  ";
+    for (int x = 0; x < MAP_X_SIZE; x++)
+        cout << setw(3) << x;
+    cout << " *\n";
+}
+
+// displays inventory of passed player
+void displayInventory(Player player)
+{
+    // don't output if nothing in inventory
+    if (player.inventorySize == 0)
+        return;
+    // inventory label
+    cout << "Inventory: ";
+    // output each item in inventory's type separated by commas
+    for (int i = 0; i < player.inventorySize; i++)
+        cout << "[" << i << "]" << player.inventory[i].type
+             << ((i < player.inventorySize - 1) ? ", " : "\n");
+}
+
+// displays the passed bank with items in format: [index]name--count
+void displayBank(BankEntity bank[MAX_BANK], int size)
+{
+    // don't output if nothing in bank
+    if (size == 0)
+        return;
+    // inventory label
+    cout << "Bank: ";
+    // output each item in bank's type separated by commas
+    for (int i = 0; i < size; i++)
+        cout << "[" << i << "]" << bank[i].item.type
+             << "--" << bank[i].count
+             << ((i < size - 1) ? ", " : "\n");
+}
+
+// gets a valid command from the user
+string getCommand()
+{
+    string command = "";
+    // loop until valid command is entered
+    do
+    {
+        // get command
+        cout << "Command: ";
+        getline(cin, command);
+        // lowercase command
+        for (unsigned int i = 0; i < command.length(); i++)
+            command[i] = tolower(command[i]);
+        // error check command
+        if (command != "move" && command != "chop" &&
+            command != "mine" && command != "deposit" &&
+            command != "exit" && command != "withdraw" &&
+            command != "drop")
+        {
+            cout << "Invalid command!\n";
+        }
+    } while (command != "move" && command != "chop" &&
+             command != "mine" && command != "deposit" &&
+             command != "exit" && command != "withdraw" &&
+             command != "drop");
+    // return the command (in all lower case)
+    return command;
+}
+
+// generates system-neutral pseudo-random numbers
+double rng()
+{
+    // generates a pseudo-random double and returns it
+    // seed the generator initially
+    static unsigned int seed = 0;
+
+    // parameters for the LCG
+    unsigned int a = 1103515245;
+    unsigned int c = 12345;
+    unsigned int m = 2147483648; // 2^31
+
+    // generate new seed
+    seed = (a * seed + c) % m;
+    return seed / static_cast<double>(RAND_MAX);
+}
+
+// ----------YOUR FUNCTIONS----------
+// ADD YOUR FUNCTIONS HERE
+
+// allows player to move to a new position on the game map
+// ADD YOUR FUNCTIONS HERE
+string move(Player &player, Entity map[MAP_Y_SIZE][MAP_X_SIZE]){
+    // variables
+    int x = 0, y = 0;
+do{
+    do{
+ // ask for x coordinate
+    
+ cout << "X-Coordinate: ";
+ cin >> x;
+
+ if(cin.fail() || x < 0 || x >= MAP_X_SIZE){
+     cin.clear();
+     cin.ignore(1000, '\n');
+     cout << "Invalid X-Coordinate" << endl;
+     continue;
+ }
+ break;
+    }while(true);
+
+do{
+// ask for y coordinate
+
+ cout << "Y-Coordinate: ";
+ cin >> y;
+
+ if(cin.fail() || y < 0 || y >= MAP_Y_SIZE){
+     cin.clear();
+     cin.ignore(1000, '\n');
+     cout << "Invalid y-Coordinate" << endl;
+     continue;
+ }
+ break;
+}while(true);
+
+// check if spot if taken
+if (map[y][x].type == "tree" )
+{
+    cout << "There's a tree in your way!\n";
+    continue;
+}else if (map[y][x].type == "rock" )
+{
+    cout << "There's a rock in your way!\n";
+    continue;
+} else if (map[y][x].type == "wall" )
+{
+    cout << "There's a wall in your way!\n";
+    continue;
+}else if (map[y][x].type == "banker" )
+{
+    cout << "There's a banker in your way!\n";
+    continue;
+}
+break;
+}while(true);
+
+ player.position[0] = x;
+ player.position[1] = y;
+
+ cin.ignore(1000, '\n');
+
+    // Return success message
+    return "Moved to position " + to_string(x) + ", " + to_string(y);
+}
+
+string deposit(Player &player, BankEntity bank[MAX_BANK],
+    Entity map[MAP_Y_SIZE][MAP_X_SIZE], int &bankSize){
+        // if player inventory zize is zero output nothing message
+            if(player.inventorySize == 0){
+                return "nothing to deposit";
+            }
+
+        // declare player position
+        int x = player.position[0];
+        int y = player.position[1];
+
+    // check if banker is near by
+    bool nearBanker = false;
+    if (x > 0 && map[y][x - 1].type == "banker") {nearBanker = true;}
+    else if (x < MAP_X_SIZE - 1 && map[y][x + 1].type == "banker") {nearBanker = true;}
+    else if (y > 0 && map[y - 1][x].type == "banker") {nearBanker = true;}
+    else if (y < MAP_Y_SIZE - 1 && map[y + 1][x].type == "banker") {nearBanker = true;}
+
+    if (!nearBanker) {
+        return "there doesn't seem to be any bankers around";
+    }
+
+    // prompt for inventorty index
+    int index = 0;
+       while(true){
+        // prompt for index item
+        
+        cout << "Inventory Index to Deposit: " ;
+        cin >> index;
+
+        if(cin.fail() || index < 0 || index >= player.inventorySize){
+            cin.clear();
+            cin.ignore(1000, '\n');
+            cout << "invalid inventory index\n";
+            continue;
+        }
+        break;
+    }
+    cin.ignore(1000, '\n');
+
+        // declare item type
+        string itemType = player.inventory[index].type;
+
+        //
+        for(int i = 0; i < bankSize; i++){
+            if(bank[i].item.type == itemType && bank[i].count < MAX_STACK){
+                //
+                bank[i].count++;
+
+                //
+                for(int j = index; j < player.inventorySize - 1; j++)
+                {
+                    player.inventory[j] = player.inventory[j + 1];
+                }
+                player.inventorySize--;
+
+                
+                return "item added to bank stack " + to_string(i);
+            }
+
+        }
+
+        //
+        if(bankSize >= MAX_BANK){
+            
+            return "bank full, unable to deposit";
+        }
+
+        // declare bank item type
+        bank[bankSize].item.type = itemType;
+        bank[bankSize].count = 1;
+        bankSize++;
+
+        // allow deposit
+        for(int j = index; j < player.inventorySize - 1; j++){
+            player.inventory[j] = player.inventory[j + 1];
+        }
+        player.inventorySize--;
+
+        // success message
+        string message = "successfully banked " + itemType;
+        if(bankSize >= MAX_BANK){
+            message += " - bank full";
+        }
+        
+     
+        return message;
+    }
+
+    //
+    string withdraw(Player &player, BankEntity bank[MAX_BANK],
+        Entity map[MAP_Y_SIZE][MAP_X_SIZE], int &bankSize){
+            
+            if(bankSize == 0){ return "nothing to withdraw";}
+            
+
+            if(player.inventorySize == MAX_INVENTORY) {
+                return "inventory too full to withdraw anything";
+            }
+
+            // declare player position
+            int x = player.position[0];
+            int y = player.position[1];
+            bool nearBanker = false;
+            if (x > 0 && map[y][x - 1].type == "banker") {nearBanker = true;}
+            else if (x < MAP_X_SIZE - 1 && map[y][x + 1].type == "banker") {nearBanker = true;}
+            else if (y > 0 && map[y - 1][x].type == "banker") {nearBanker = true;}
+            else if (y < MAP_Y_SIZE - 1 && map[y + 1][x].type == "banker") {nearBanker = true;}
+        
+            if (!nearBanker) {
+                return "there doesn't seem to be any bankers around";
+            }
+
+            int index = 0;
+            while(true){
+            cout << "Bank Index to Withdraw: ";
+            cin >> index;
+
+            if (cin.fail() || index < 0 || index >= bankSize){
+                cin.clear();
+                cin.ignore(1000, '\n');
+                cout << "invalid bank index\n";
+                continue;
+            }
+            break;
+        }
+        cin.ignore(1000, '\n');
+
+            //
+            string itemType = bank[index].item.type;
+            // add items to inventorty 
+            player.inventory[player.inventorySize].type = bank[index].item.type;
+            player.inventorySize++;
+
+            //update bank
+            bank[index].count--;
+            bool stackEmpty = (bank[index].count == 0);
+            if(stackEmpty){
+                for(int i = index; i < bankSize - 1; i++){
+                    bank[i] = bank[i + 1];
+                }
+                bankSize--;
+            }
+            
+            string message = "withdrew " + itemType;
+            if(stackEmpty){
+                message += " -- bank stack empty/removed";
+            }
+            return message;
+        }
+
+        //
+        string drop(Player &player){
+            //
+            if(player.inventorySize <= 0){
+                return "nothing in inventory to drop";
+            }
+
+            //
+            int index = 0;
+            while(player.inventorySize > 0){
+    cout << "Inventory Index to Drop: ";
+                cin >> index;
+
+                if(cin.fail() || index < 0 || index >= player.inventorySize){
+                    cin.clear();
+                    cin.ignore(1000, '\n');
+                    cout << "invalid inventory index\n";
+                    continue;
+                }
+                break;
+            }
+            cin.ignore(1000, '\n');
+
+            //
+            string itemType = player.inventory[index].type;
+
+            //
+            for(int i = index; i < player.inventorySize - 1; i++){
+                player.inventory[i] = player.inventory[i + 1];
+            }
+            player.inventorySize--;
+
+            //
+            return itemType + " dropped";
+
+           
+        }
+        

@@ -1,0 +1,326 @@
+/*
+    Name: Ryan A. Saunders, 5008442915, 1002 & 1005 & 10110, ASSIGNMENT_7
+    Description: a program that plays tictactoe human vs computer
+    Input: human inputs (x, y) coordinates 
+    Output: plays tictactoe game untill someone wins, lose, or tie
+*/
+
+#include <iostream>
+#include <iomanip>
+#include <cstdlib> //For rand()
+#include <time.h> //For seeding randomness
+#include <unistd.h>
+
+using namespace std;
+
+//Constants
+const int BOARD_DIM = 3; /// Width of the board.
+const int TOTAL_SPACES = BOARD_DIM * BOARD_DIM; //Number of spaces on board 
+const int DEFAULT_SEED = 10145; //Default seed for random number generation
+
+//String constants
+const string POSITION_MSG = "Please enter a position to play (x, y)";
+const string HUMAN_WIN_MSG = "Human player wins!";
+const string COM_WIN_MSG = "Computer wins!";
+const string TIE_MSG = "Cat's Game!";
+const string PLAY_AGAIN_MSG = "Play again?";
+const string POS_ERR_MSG = "ERROR! Move enter an integer between 0 and " + to_string(BOARD_DIM - 1) + " inclusive";
+const string NOT_EMPTY_MSG = "ERROR! That position is already filled. Please enter again.";
+const string YN_ERR_MSG = "ERROR! Please enter (y)es or (n)o";
+
+//Function prototypes
+
+void initializeSeed(const int& arg_count, char** arg_vector);
+void drawBoard(char board[BOARD_DIM][BOARD_DIM]);
+void clearBoard(char board[BOARD_DIM][BOARD_DIM]);
+char getYesOrNo();
+int getInteger(int min, int max);
+void getHumanMove(char board[BOARD_DIM][BOARD_DIM], int& x, int& y);
+void getComputerMove(int&x, int& y, char board[BOARD_DIM][BOARD_DIM]);
+bool isOccupied(char board[BOARD_DIM][BOARD_DIM], const int& x, const int& y);
+bool checkDiagonalUpRight(char board[BOARD_DIM][BOARD_DIM]);
+bool checkDiagonalDownLeft(char board[BOARD_DIM][BOARD_DIM]);
+bool checkWin(char board[BOARD_DIM][BOARD_DIM]);
+void placeSymbol(char board_[BOARD_DIM][BOARD_DIM], int x_coord, int y_coord, char symbol);
+bool checkRow(char boardd[BOARD_DIM][BOARD_DIM], int row_number);
+bool checkColumn(char board_[BOARD_DIM][BOARD_DIM], int col_number);
+
+// main function ---->>>---==->>>>>
+int main (int argc, char** argv) {
+    char board[BOARD_DIM][BOARD_DIM]; //Create the board
+
+    initializeSeed(argc, argv); //Seed for RNG
+
+	//Variables (you may create more or use different variables if you like)
+    int xPos, yPos; //x and y positions
+    int turnNumber; //Current turn number
+    
+
+
+	//TODO: Complete main to play a game of tictactoe
+	//Play games until player wants to quit
+    bool gameover = false;
+    while(!gameover){
+        turnNumber = 0;
+		//Before each game, make sure to clear the board of all marks
+        clearBoard(board);
+		//Show the empty board before the game starts
+        drawBoard(board);
+        while(true){
+		//Play a game of Tic Tac Toe. Alternate putting marks until a winner or tie
+			//Player turn is first, they play 'x'
+				//Get the player move and put it in the spot on the board
+                getHumanMove(board, xPos, yPos);
+                placeSymbol(board, xPos, yPos, 'x');
+				//Draw the board after their move
+                drawBoard(board);
+                turnNumber++;
+                
+                //Check for winners/tie after each turn
+                if(checkWin(board)){
+                    cout << HUMAN_WIN_MSG << endl;
+                    break; 
+                }
+                if(turnNumber == 9){
+                    cout << TIE_MSG << endl;
+                    break;
+                }
+                
+			//Computer plays next
+				//Get computer's move using getComputerMove function, put an 'o' at the chosen spot
+                cout << endl;
+                cout << "Computer turn" << endl;
+                getComputerMove(xPos, yPos, board);
+                placeSymbol(board, xPos, yPos, 'o');
+                drawBoard(board);
+                turnNumber++;
+
+                //Check for winners/tie after each turn
+                if(checkWin(board)){
+                    cout << COM_WIN_MSG << endl;
+                    break; 
+                }
+                if(turnNumber == 9){
+                    cout << TIE_MSG << endl;
+                    break;
+                }
+			
+        }
+		//After game is over, ask human if they would like to play again and get their yes or no response ('y' or 'n')
+		//If they say yes play again, otherwise end the program vvvvv
+         
+           char playAgain = getYesOrNo();
+
+           if(playAgain == 'n'){
+            gameover = true;
+           }
+           
+    
+    }
+    
+    //End the program
+    cout << endl << "See you later!" << endl;
+    return 0;
+}
+
+
+//TODO: YOUR FUNCTION DEFINITIONS BELOW!-->>>----==>
+
+//"Clears" the board by filling all elements with the space character
+void clearBoard(char board[BOARD_DIM][BOARD_DIM])
+{//Please implement this function using two for loops.
+    int row, col;
+    for(row = 0; row < BOARD_DIM; ++row){
+        for(col = 0; col < BOARD_DIM; ++col){
+            board[row][col] = ' ';
+        }
+    }
+    
+}
+
+// get a yes or no from user if they want to play agian and error check 
+char getYesOrNo(){
+    char YesOrNo;
+    cout << PLAY_AGAIN_MSG << endl;
+    while(true){
+    
+    cin >> YesOrNo;
+    cin.ignore();
+
+    if(YesOrNo == 'y' || YesOrNo == 'n'){
+        return YesOrNo;
+    } else {
+        cout << YN_ERR_MSG;
+    }
+ }
+}
+
+// get player move by refernce and make sure position is not occupied
+void getHumanMove(char board [BOARD_DIM][BOARD_DIM], int& x, int& y){
+    cout << POSITION_MSG << endl;
+    
+    x = getInteger(0, BOARD_DIM  );
+    y = getInteger(0, BOARD_DIM );
+
+    while(isOccupied(board, x, y)){
+        cout << NOT_EMPTY_MSG << endl;
+        
+        x = getInteger(0, BOARD_DIM );
+        y = getInteger(0, BOARD_DIM );
+    }
+}
+
+// Puts the given symbol (’x’ or ’o’) at the (x, y) position on the board
+void placeSymbol(char board_[BOARD_DIM][BOARD_DIM], int x_coord, int y_coord, char symbol){
+    board_[y_coord][x_coord] = symbol;
+}
+
+// this Checks if the row on the board with the given index contains a winning play
+bool checkRow(char board[BOARD_DIM][BOARD_DIM], int row_number){
+    char checkChar = board[row_number][0];
+    if(checkChar == ' ') return false;
+
+    for(int col = 1; col < BOARD_DIM; col++){
+        if(board[row_number][col] != checkChar)
+        return false;
+    }
+    return true;
+}
+
+// Checks if the column on the board with the given index contains a winning play
+bool checkColumn(char board_[BOARD_DIM][BOARD_DIM], int col_number){
+    char checkChar = board_[0][col_number]; 
+    if(checkChar == ' ') return false;
+
+    for(int row = 1; row < BOARD_DIM; row++){
+        if(board_[row][col_number] != checkChar)
+        return false;
+    }
+    return true;
+}
+
+// Checks if someone has won the game----->>>>>
+bool checkWin(char board_[BOARD_DIM][BOARD_DIM]){
+    for(int row = 0; row < BOARD_DIM; row++){
+        if(checkRow(board_, row)) {
+            return true;
+        }
+    }
+
+    for(int col = 0; col < BOARD_DIM; col++){
+        if(checkColumn(board_, col)){
+            return true;
+        }
+    }
+
+    if(checkDiagonalDownLeft(board_) || checkDiagonalUpRight(board_)){
+        return true;
+    }
+
+    // if no winner-->>---==>
+    return false;
+}
+
+//---------------------------------- Provided functions ----------------------------------
+
+//Gets an integer from the user in the range [min, max) and returns it
+int getInteger(int min, int max)
+{
+    int value;
+    cin >> value; //Read int
+
+    //Loop until value was successfully read in valid range
+    while(cin.fail() || value < min || value >= max)
+    {
+        cout << POS_ERR_MSG << endl; //Print error message
+        cin.clear(); //Clear fail state
+        cin.ignore(1024, '\n'); //Ignore
+        cin >> value; //Try to read again
+    }
+
+    return value;
+}
+
+//Checks if a player has won via the diagonal from bottom left to top right
+bool checkDiagonalUpRight(char board[BOARD_DIM][BOARD_DIM])
+{
+    char checkChar = board[BOARD_DIM - 1][0]; //Get bottom left character
+    if(checkChar == ' ') return false; //If not filled, diagonal is not a winner
+
+    //Travel across diagonal. If any character does not match bottom left, diagonal is not a winner
+    for(int i = 1; i < BOARD_DIM; i++)
+        if(board[BOARD_DIM - i - 1][i] != checkChar) return false;
+
+    return true; //If all matched, someone won via the diagonal!
+}
+
+//Checks if a player has won via the diagonal from top left to bottom right
+bool checkDiagonalDownLeft(char board[BOARD_DIM][BOARD_DIM])
+{
+    char checkChar = board[0][0]; //Get top left character
+    if(checkChar == ' ') return false; //If not filled, diagonal is not a winner
+
+    //Travel across diagonal. If any character does not match top left, diagonal is not a winner
+    for(int i = 1; i < BOARD_DIM; i++)
+        if(board[i][i] != checkChar) return false;
+
+    return true; //If all matched, someone won via the diagonal!
+}
+
+//Indicates whether the given position is occupied with an 'x' or 'o'
+bool isOccupied(char board[BOARD_DIM][BOARD_DIM], const int& x, const int& y)
+{
+    return board[y][x] != ' ';
+}
+
+//Gets a random move to play on the board. Sets x and y to be the coordinates of the move.
+//Played move is guaranteed to be open for a play to be made.
+//Assumes board is not completely full
+void getComputerMove(int&x, int& y, char board[BOARD_DIM][BOARD_DIM])
+{
+    x = rand() % BOARD_DIM; //Get a random x
+    y = rand() % BOARD_DIM; //Get a random y
+
+    //Reroll until an empty space is found
+    while (isOccupied(board, x, y))
+    {
+        x = rand() % BOARD_DIM;
+        y = rand() % BOARD_DIM;
+    }
+}
+
+// Prints the board to the screen
+void drawBoard(char board[BOARD_DIM][BOARD_DIM]) {
+    int h, w;
+    for (h = 0; h < BOARD_DIM - 1; h++) {
+        for (w = 0; w < BOARD_DIM - 1; w++)
+            cout << board[h][w] << "|"; //Print each character and the board lines
+
+        cout << board[h][w] << endl; //Print last character of row
+        cout << setw(2*BOARD_DIM - 1) << setfill('-') << "" << endl;
+    }
+
+    //Print last row
+    for (w = 0; w < BOARD_DIM - 1; w++)
+        cout << board[h][w] << "|"; //Print each character and the board lines
+    cout << board[h][w] << endl; //Print last character of row
+}
+
+//Initializes the seed for rng using the command line arguments.
+void initializeSeed(const int& arg_count, char** arg_vector)
+{
+    //Read the seed from the command line or set default if none given
+    switch(arg_count)
+    {
+        case 1: //If no arguments, use default seed
+            srand(DEFAULT_SEED);
+            break;
+        case 2: //Else use command line argument as seed
+            srand(stoi(arg_vector[1]));
+            break;
+        default: //If more arguments are used
+            cout << "Error, program takes either 0 or 1 command line arguments. Usages:\n" <<
+            "./a.out\n or ./a.out <seed>" << endl;
+            exit(1);
+    }
+}
